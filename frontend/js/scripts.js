@@ -1,23 +1,3 @@
-async function fetchTeamLogo(teamName) {
-    const encodedTeamName = encodeURIComponent(teamName);
-    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodedTeamName}`;
-
-    try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        // Process the response data here
-        return data;
-    } catch (error) {
-        console.error(`Error fetching team logo for ${teamName}:`, error.message);
-        return null;
-    }
-}
-
-
-
 const oddsApiKey = "46e6ea667b3260541f123b5fb8f14e45";
 
 async function fetchTeamLogo(teamName) {
@@ -59,51 +39,38 @@ function displayMatches(matches) {
     Object.keys(leagues).forEach(key => {
         const league = leagues[key];
 
-        const $leagueTable = $(`
+        const $leagueContainer = $(`
             <div class="my-4">
                 <h2>${league.title}</h2>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Match</th>
-                            <th>Commence Time</th>
-                            <th>Bookmaker</th>
-                            <th>Odds</th>
-                            <th>Team Logos</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div class="row" id="league-${key}"></div>
             </div>
         `);
 
-        const logoFetchPromises = league.matches.map(async match => {
+        league.matches.forEach(async match => {
             const homeTeamLogo = await fetchTeamLogo(match.home_team);
             const awayTeamLogo = await fetchTeamLogo(match.away_team);
 
-            const $row = $(`
-                <tr>
-                    <td>${match.home_team} vs ${match.away_team}</td>
-                    <td>${formatCommenceTime(match.commence_time)}</td>
-                    <td>${match.bookmakers[0].title} (Last update: ${match.bookmakers[0].last_update})</td>
-                    <td>
-                        <ul class="list-unstyled">
-                            ${match.bookmakers[0].markets[0].outcomes.map(outcome => `<li>${outcome.name}: ${outcome.price}</li>`).join('')}
-                        </ul>
-                    </td>
-                    <td>
-                        <img src="${homeTeamLogo}" alt="${match.home_team} logo" style="max-width: 50px;">
-                        <img src="${awayTeamLogo}" alt="${match.away_team} logo" style="max-width: 50px;">
-                    </td>
-                </tr>
+            const $card = $(`
+                <div class="col-md-4 mb-4">
+                    <div class="card-sl">
+                        <div class="card-heading">
+                            <h5 class="card-title">${match.home_team} vs ${match.away_team}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text"><strong>Commence Time:</strong> ${formatCommenceTime(match.commence_time)}</p>
+                            <p class="card-text"><strong>Bookmaker:</strong> ${match.bookmakers[0].title} (Last update: ${match.bookmakers[0].last_update})</p>
+                            <ul class="list-unstyled">
+                                ${match.bookmakers[0].markets[0].outcomes.map(outcome => `<li><strong>${outcome.name}:</strong> ${outcome.price}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             `);
 
-            $leagueTable.find('tbody').append($row);
+            $leagueContainer.find('.row').append($card);
         });
 
-        Promise.all(logoFetchPromises).then(() => {
-            $matches.append($leagueTable);
-        });
+        $matches.append($leagueContainer);
     });
 }
 
